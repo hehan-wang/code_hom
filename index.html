@@ -16,7 +16,7 @@
             line-height: 1.6;
             color: #333;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 10px;
+            /* padding: 10px; 移除顶部内边距，防止 iframe 截断 */
             margin: 0;
             height: 100vh;
             overflow: hidden;
@@ -25,7 +25,7 @@
         .container {
             max-width: 100%;
             width: 100%;
-            height: calc(100vh - 20px);
+            height: 100vh; /* 让容器高度占满整个视口，防止被截断 */
             margin: 0 auto;
             background: white;
             border-radius: 8px;

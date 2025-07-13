@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code 接入指南</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 100%;
+            width: 100%;
+            height: calc(100vh - 20px);
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.1); opacity: 0.1; }
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .step {
+            margin-bottom: 20px;
+            padding: 18px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            transform: translateX(3px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .step-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            overflow-x: auto;
+            position: relative;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .code-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 12px 0;
+            font-size: 0.9em;
+        }
+
+        .warning::before {
+            content: "⚠️ ";
+            font-weight: bold;
+        }
+
+        .faq {
+            background: #e8f4f8;
+            border-radius: 8px;
+            padding: 18px;
+            margin-top: 20px;
+        }
+
+        .faq h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .faq-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .faq-question {
+            font-weight: 600;
+            color: #2d3436;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+
+        .faq-answer {
+            color: #636e72;
+            line-height: 1.5;
+            font-size: 0.85em;
+        }
+
+        .emoji {
+            font-size: 1.1em;
+            margin-right: 6px;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 12px 0;
+            text-align: center;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        .os-tabs {
+            display: flex;
+            margin-bottom: 12px;
+            background: #e9ecef;
+            border-radius: 6px;
+            padding: 3px;
+        }
+
+        .os-tab {
+            flex: 1;
+            padding: 6px 12px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.85em;
+        }
+
+        .os-tab.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .os-content {
+            display: none;
+        }
+
+        .os-content.active {
+            display: block;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                height: calc(100vh - 10px);
+            }
+            
+            .header {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .header p {
+                font-size: 0.8em;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            .step {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .code-block {
+                font-size: 0.8em;
+                padding: 10px;
+            }
+            
+            .faq {
+                padding: 15px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a6fd8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><span class="emoji">🚀</span>Claude Code 接入指南</h1>
+            <p>让你可以直接在终端中与 Claude 协作编程的命令行工具！</p>
+        </div>
+
+        <div class="content">
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">1</span>
+                    安装 Node.js
+                </div>
+                <p>确保 Node.js 版本 ≥ 18.0</p>
+                
+                <div class="os-tabs">
+                    <button class="os-tab active" onclick="showOS('ubuntu')">Ubuntu/Debian</button>
+                    <button class="os-tab" onclick="showOS('macos')">macOS</button>
+                </div>
+
+                <div id="ubuntu" class="os-content active">
+                    <div class="code-block">curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo bash -
+sudo apt-get install -y nodejs
+node --version</div>
+                </div>
+
+                <div id="macos" class="os-content">
+                    <div class="code-block">sudo xcode-select --install
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install node
+node --version</div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">2</span>
+                    安装 Claude Code
+                </div>
+                <div class="code-block">npm install -g @anthropic-ai/claude-code
+claude --version</div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">3</span>
+                    开始使用
+                </div>
+                
+                <h4 style="margin-bottom: 10px; color: #667eea;">获取配置信息</h4>
+                <ul style="margin-bottom: 15px; padding-left: 20px;">
+                    <li><strong>Auth Token</strong>：注册后在 API 令牌页面点击"添加令牌"获得（以 <span class="highlight">sk-</span> 开头）</li>
+                    <li><strong>API 地址</strong>：<span class="highlight">https://code.wenwen-ai.com</span></li>
+                </ul>
+
+                <h4 style="margin-bottom: 10px; color: #667eea;">运行 Claude Code</h4>
+                <div class="code-block">cd your-project-folder
+export ANTHROPIC_AUTH_TOKEN=sk-...
+export ANTHROPIC_BASE_URL=https://code.wenwen-ai.com
+claude</div>
+
+                <h4 style="margin-bottom: 10px; color: #667eea;">初始化设置</h4>
+                <ol style="padding-left: 20px;">
+                    <li>选择你喜欢的主题 + Enter</li>
+                    <li>确认安全须知 + Enter</li>
+                    <li>使用默认 Terminal 配置 + Enter</li>
+                    <li>信任工作目录 + Enter</li>
+                </ol>
+
+                <div class="success">
+                    <span class="emoji">🎉</span>现在就可以在终端里和你的 AI 编程搭档一起写代码了！
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">4</span>
+                    配置环境变量（推荐）
+                </div>
+                <p>为避免每次重复输入，可将环境变量写入配置文件：</p>
+                <div class="code-block">echo -e '\nexport ANTHROPIC_AUTH_TOKEN=sk-...' >> ~/.bash_profile
+echo -e '\nexport ANTHROPIC_BASE_URL=https://code.wenwen-ai.com' >> ~/.bash_profile
+echo -e '\nexport ANTHROPIC_AUTH_TOKEN=sk-...' >> ~/.bashrc
+echo -e '\nexport ANTHROPIC_BASE_URL=https://code.wenwen-ai.com' >> ~/.bashrc
+echo -e '\nexport ANTHROPIC_AUTH_TOKEN=sk-...' >> ~/.zshrc
+echo -e '\nexport ANTHROPIC_BASE_URL=https://code.wenwen-ai.com' >> ~/.zshrc</div>
+
+                <p>重启终端后，直接使用：</p>
+                <div class="code-block">cd your-project-folder
+claude</div>
+            </div>
+
+            <div class="faq">
+                <h3><span class="emoji">❓</span>常见问题</h3>
+                
+                <div class="faq-item">
+                    <div class="faq-question">Q: Invalid API Key · Please run /login 怎么解决？</div>
+                    <div class="faq-answer">A: 这表明 Claude Code 没有检测到环境变量，请检查 <code>ANTHROPIC_AUTH_TOKEN</code> 和 <code>ANTHROPIC_BASE_URL</code> 是否配置正确。</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Q: 显示 offline 是什么原因？</div>
+                    <div class="faq-answer">A: Claude Code 会通过检查是否能连接到 Google 来判断网络状态。显示 offline 不影响正常使用。</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Q: 为什么浏览网页的 Fetch 会失败？</div>
+                    <div class="faq-answer">A: 需要保持国际互联网连接并进行全局代理，才能访问 Claude 的网页检测服务。</div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Q: 请求总是显示 fetch failed 怎么办？</div>
+                    <div class="faq-answer">A: 可能是网络环境导致的，可以尝试使用备用 API 端点：<br>
+                    <code>export ANTHROPIC_BASE_URL=https://code.wenwen-ai.com</code></div>
+                </div>
+            </div>
+
+            <div class="warning">
+                <strong>重要提醒：</strong>
+                <ul style="margin-top: 8px;">
+                    <li>本站直接接入官方 Claude Code 转发</li>
+                    <li>如遇 API 报错，可以退出重试几次</li>
+                    <li>登录错误时可尝试清除本站 Cookie</li>
+                </ul>
+            </div>
+
+            <div class="success">
+                <span class="emoji">🎯</span>开始享受与 Claude 协作编程的乐趣吧！
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showOS(os) {
+            // 隐藏所有内容
+            document.querySelectorAll('.os-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有标签的 active 状态
+            document.querySelectorAll('.os-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的内容
+            document.getElementById(os).classList.add('active');
+            
+            // 激活对应的标签
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
